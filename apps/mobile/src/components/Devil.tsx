@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, Text, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,62 +19,66 @@ interface DevilProps {
 }
 
 const sizeMap = {
-  sm: { container: 60, emoji: 32 },
-  md: { container: 100, emoji: 56 },
-  lg: { container: 150, emoji: 80 },
+  sm: { container: 50, icon: 28 },
+  md: { container: 80, icon: 44 },
+  lg: { container: 120, icon: 64 },
 };
 
-// Mood to expression mapping (using emoji as placeholder for actual mascot art)
-const moodExpressions: Record<DevilMood, string> = {
-  idle: '😈',
-  watching: '👀',
-  disappointed: '😤',
-  pleased: '😏',
-  furious: '👿',
-  impressed: '🤯',
+const moodIcons: Record<DevilMood, keyof typeof Ionicons.glyphMap> = {
+  idle: 'skull',
+  watching: 'eye',
+  disappointed: 'sad',
+  pleased: 'happy',
+  furious: 'flame',
+  impressed: 'star',
 };
 
 const moodColors: Record<DevilMood, string> = {
-  idle: 'bg-devil-red/20',
-  watching: 'bg-devil-orange/20',
-  disappointed: 'bg-devil-darkRed/30',
-  pleased: 'bg-success/20',
-  furious: 'bg-danger/30',
-  impressed: 'bg-devil-purple/20',
+  idle: '#ff2222',
+  watching: '#ff4444',
+  disappointed: '#994444',
+  pleased: '#44ff44',
+  furious: '#ff0000',
+  impressed: '#ffaa00',
 };
 
 export function Devil({ size = 'md', showMessage = true, onPress }: DevilProps) {
   const { mood, currentMessage, isAnimating, triggerShame } = useDevilStore();
-
   const dimensions = sizeMap[size];
 
-  // Animation values
   const bounce = useSharedValue(0);
   const rotate = useSharedValue(0);
   const scale = useSharedValue(1);
+  const glow = useSharedValue(0.3);
 
-  // Idle bounce animation
   useEffect(() => {
     bounce.value = withRepeat(
       withSequence(
-        withTiming(-5, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 500, easing: Easing.inOut(Easing.ease) })
+        withTiming(-4, { duration: 600, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 600, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    );
+    glow.value = withRepeat(
+      withSequence(
+        withTiming(0.6, { duration: 1000 }),
+        withTiming(0.3, { duration: 1000 })
       ),
       -1,
       true
     );
   }, []);
 
-  // Reaction animation when mood changes
   useEffect(() => {
     if (isAnimating) {
       scale.value = withSequence(
-        withTiming(1.2, { duration: 150 }),
+        withTiming(1.3, { duration: 150 }),
         withTiming(1, { duration: 150 })
       );
       rotate.value = withSequence(
-        withTiming(-10, { duration: 100 }),
-        withTiming(10, { duration: 100 }),
+        withTiming(-15, { duration: 100 }),
+        withTiming(15, { duration: 100 }),
         withTiming(0, { duration: 100 })
       );
     }
@@ -87,11 +92,14 @@ export function Devil({ size = 'md', showMessage = true, onPress }: DevilProps) 
     ],
   }));
 
+  const glowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: glow.value,
+  }));
+
   const handlePress = () => {
     if (onPress) {
       onPress();
     } else {
-      // Random idle interaction
       triggerShame('app_open');
     }
   };
@@ -100,62 +108,53 @@ export function Devil({ size = 'md', showMessage = true, onPress }: DevilProps) 
     <View className="items-center">
       {/* Speech bubble */}
       {showMessage && currentMessage && (
-        <View className="bg-surface rounded-2xl px-4 py-3 mb-3 max-w-[280px] relative">
-          <Text className="text-text-primary text-center text-sm">
+        <View className="bg-fire-900 border border-fire-700 rounded-2xl px-4 py-3 mb-3 max-w-[300px] relative">
+          <Text className="text-fire-100 text-center text-sm font-medium">
             {currentMessage}
           </Text>
-          {/* Speech bubble tail */}
           <View
-            className="absolute -bottom-2 left-1/2 -ml-2 w-0 h-0"
+            className="absolute -bottom-2 left-1/2 -ml-2"
             style={{
+              width: 0,
+              height: 0,
               borderLeftWidth: 8,
               borderRightWidth: 8,
               borderTopWidth: 8,
               borderLeftColor: 'transparent',
               borderRightColor: 'transparent',
-              borderTopColor: '#1a1a2e',
+              borderTopColor: '#4a0000',
             }}
           />
         </View>
       )}
 
-      {/* Devil character */}
+      {/* Devil icon */}
       <Pressable onPress={handlePress}>
         <Animated.View
           style={[
             animatedStyle,
+            glowStyle,
             {
               width: dimensions.container,
               height: dimensions.container,
+              shadowColor: moodColors[mood],
+              shadowOffset: { width: 0, height: 0 },
+              shadowRadius: 20,
+              elevation: 10,
             },
           ]}
-          className={`
-            rounded-full items-center justify-center
-            ${moodColors[mood]}
-          `}
+          className="rounded-full items-center justify-center bg-fire-900 border-2 border-fire-600"
         >
-          {/* Horns (decorative) */}
-          <View className="absolute -top-2 flex-row">
-            <Text style={{ fontSize: 16 }}>🔱</Text>
-          </View>
-
-          {/* Face */}
-          <Text style={{ fontSize: dimensions.emoji }}>
-            {moodExpressions[mood]}
-          </Text>
-
-          {/* Pitchfork (decorative) */}
-          {size === 'lg' && (
-            <View className="absolute -right-2 bottom-0">
-              <Text style={{ fontSize: 24 }}>🔱</Text>
-            </View>
-          )}
+          <Ionicons
+            name={moodIcons[mood]}
+            size={dimensions.icon}
+            color={moodColors[mood]}
+          />
         </Animated.View>
       </Pressable>
 
-      {/* Mood indicator */}
       {size === 'lg' && (
-        <Text className="text-text-muted text-xs mt-2 capitalize">
+        <Text className="text-fire-400 text-xs mt-2 capitalize font-medium">
           {mood === 'idle' ? 'Waiting...' : mood}
         </Text>
       )}

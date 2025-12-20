@@ -1,12 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native';
 import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useTaskStore } from '../../src/stores/taskStore';
 import { useDevilStore } from '../../src/stores/devilStore';
-import { TaskItem, Devil, Button } from '../../src/components';
+import { TaskItem, Devil } from '../../src/components';
 
 export default function TasksScreen() {
-  const { tasks, isLoading, completeTask, deleteLocalTask } = useTaskStore();
+  const { tasks, completeTask, deleteLocalTask } = useTaskStore();
   const { triggerShame } = useDevilStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -19,7 +20,6 @@ export default function TasksScreen() {
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    // Check for overdue tasks and shame user
     if (overdueTasks.length > 0) {
       triggerShame('task_overdue', { overdueCount: overdueTasks.length });
     }
@@ -28,18 +28,12 @@ export default function TasksScreen() {
 
   const handleComplete = async (taskId: string) => {
     await completeTask(taskId);
-
-    // Check if all tasks are done
     const remainingPending = pendingTasks.filter((t) => t.id !== taskId);
     if (remainingPending.length === 0) {
       triggerShame('all_tasks_done');
     } else {
       triggerShame('task_completed');
     }
-  };
-
-  const handleDelete = (taskId: string) => {
-    deleteLocalTask(taskId);
   };
 
   return (
@@ -51,11 +45,14 @@ export default function TasksScreen() {
 
       {/* Overdue warning */}
       {overdueTasks.length > 0 && (
-        <View className="mx-4 mb-4 bg-danger/20 rounded-xl p-4">
-          <Text className="text-danger font-bold">
-            ⚠️ {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''}
-          </Text>
-          <Text className="text-danger/80 text-sm mt-1">
+        <View className="mx-4 mb-4 bg-fire-700 border border-fire-500 rounded-xl p-4">
+          <View className="flex-row items-center">
+            <Ionicons name="warning" size={24} color="#ff4444" />
+            <Text className="text-fire-100 font-bold ml-2">
+              {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''}
+            </Text>
+          </View>
+          <Text className="text-fire-200 text-sm mt-1">
             The devil is watching... and judging.
           </Text>
         </View>
@@ -67,21 +64,27 @@ export default function TasksScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#e63946"
+            tintColor="#ff2222"
           />
         }
       >
         {/* Quick stats */}
         <View className="flex-row justify-between mb-6">
-          <View className="bg-surface rounded-xl p-4 flex-1 mr-2">
-            <Text className="text-text-muted text-sm">Pending</Text>
-            <Text className="text-text-primary text-2xl font-bold">
+          <View className="bg-surface border border-fire-800 rounded-xl p-4 flex-1 mr-2">
+            <View className="flex-row items-center">
+              <Ionicons name="time" size={20} color="#ff9999" />
+              <Text className="text-text-muted text-sm ml-2">Pending</Text>
+            </View>
+            <Text className="text-fire-100 text-3xl font-bold mt-1">
               {pendingTasks.length}
             </Text>
           </View>
-          <View className="bg-surface rounded-xl p-4 flex-1 ml-2">
-            <Text className="text-text-muted text-sm">Done Today</Text>
-            <Text className="text-success text-2xl font-bold">
+          <View className="bg-surface border border-fire-800 rounded-xl p-4 flex-1 ml-2">
+            <View className="flex-row items-center">
+              <Ionicons name="checkmark-done" size={20} color="#44ff44" />
+              <Text className="text-text-muted text-sm ml-2">Done Today</Text>
+            </View>
+            <Text className="text-success text-3xl font-bold mt-1">
               {completedTasks.filter((t) => {
                 if (!t.completed_at) return false;
                 const today = new Date().toISOString().split('T')[0];
@@ -94,16 +97,16 @@ export default function TasksScreen() {
         {/* Task list */}
         {pendingTasks.length === 0 ? (
           <View className="items-center py-12">
-            <Text className="text-6xl mb-4">🎉</Text>
-            <Text className="text-text-primary text-xl font-bold">No tasks!</Text>
-            <Text className="text-text-secondary text-center mt-2">
+            <Ionicons name="flame" size={64} color="#ff2222" />
+            <Text className="text-fire-100 text-xl font-bold mt-4">No tasks!</Text>
+            <Text className="text-text-secondary text-center mt-2 px-8">
               Either you're crushing it, or you're avoiding adding tasks.
-              {'\n'}The devil suspects the latter.
+              The devil suspects the latter.
             </Text>
           </View>
         ) : (
           <>
-            <Text className="text-text-secondary text-sm mb-3 uppercase tracking-wider">
+            <Text className="text-fire-300 text-sm mb-3 uppercase tracking-wider font-bold">
               To Do
             </Text>
             {pendingTasks.map((task) => (
@@ -111,41 +114,35 @@ export default function TasksScreen() {
                 key={task.id}
                 task={task}
                 onComplete={() => handleComplete(task.id)}
-                onDelete={() => handleDelete(task.id)}
+                onDelete={() => deleteLocalTask(task.id)}
               />
             ))}
           </>
         )}
 
-        {/* Completed tasks (collapsed) */}
+        {/* Completed tasks */}
         {completedTasks.length > 0 && (
           <View className="mt-6 mb-8">
-            <Text className="text-text-muted text-sm mb-3 uppercase tracking-wider">
+            <Text className="text-text-muted text-sm mb-3 uppercase tracking-wider font-bold">
               Completed ({completedTasks.length})
             </Text>
             {completedTasks.slice(0, 3).map((task) => (
               <TaskItem
                 key={task.id}
                 task={task}
-                onDelete={() => handleDelete(task.id)}
+                onDelete={() => deleteLocalTask(task.id)}
               />
             ))}
-            {completedTasks.length > 3 && (
-              <Text className="text-text-muted text-center py-2">
-                +{completedTasks.length - 3} more completed
-              </Text>
-            )}
           </View>
         )}
 
-        {/* Spacer for FAB */}
         <View className="h-24" />
       </ScrollView>
 
       {/* Floating Add Button */}
       <Link href="/add-task" asChild>
-        <Pressable className="absolute bottom-6 right-6 w-14 h-14 bg-accent rounded-full items-center justify-center shadow-lg active:opacity-80">
-          <Text className="text-white text-3xl font-light">+</Text>
+        <Pressable className="absolute bottom-6 right-6 w-16 h-16 bg-accent rounded-full items-center justify-center shadow-lg border-2 border-fire-400 active:bg-fire-400">
+          <Ionicons name="add" size={32} color="#ffffff" />
         </Pressable>
       </Link>
     </View>

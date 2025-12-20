@@ -9,32 +9,55 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // DevilDo brand colors
-        devil: {
-          red: '#e63946',
-          darkRed: '#9d0208',
-          orange: '#f77f00',
-          black: '#1a1a2e',
-          dark: '#16213e',
-          purple: '#4a0e4e',
+        // HELLFIRE THEME 🔥
+        background: '#0a0000',
+        surface: '#1a0505',
+        surfaceLight: '#2a0a0a',
+
+        // Fire colors
+        fire: {
+          900: '#1a0000',
+          800: '#2d0000',
+          700: '#4a0000',
+          600: '#6b0000',
+          500: '#8b0000',
+          400: '#b22222',
+          300: '#dc143c',
+          200: '#ff4444',
+          100: '#ff6b6b',
+          50: '#ff8a8a',
         },
-        // UI colors
-        background: '#0f0f1a',
-        surface: '#1a1a2e',
-        surfaceLight: '#252542',
-        accent: '#e63946',
-        accentLight: '#ff6b6b',
+
+        // Accent - hot red/orange
+        accent: '#ff2222',
+        accentLight: '#ff4444',
+        accentDark: '#cc0000',
+
+        // Ember/orange
+        ember: {
+          500: '#ff4500',
+          400: '#ff6600',
+          300: '#ff8800',
+        },
+
+        // Text
         text: {
           primary: '#ffffff',
-          secondary: '#a0a0b0',
-          muted: '#606070',
+          secondary: '#ff9999',
+          muted: '#994444',
         },
-        success: '#2ecc71',
-        warning: '#f39c12',
-        danger: '#e74c3c',
+
+        // Status
+        success: '#44ff44',
+        warning: '#ffaa00',
+        danger: '#ff0000',
       },
       fontFamily: {
         sans: ['System'],
+      },
+      backgroundImage: {
+        'hellfire': 'linear-gradient(to bottom, #1a0000, #0a0000)',
+        'ember-glow': 'radial-gradient(ellipse at center, #4a0000 0%, #0a0000 70%)',
       },
     },
   },

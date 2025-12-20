@@ -39,14 +39,7 @@ export default function RootLayout() {
             name="(tabs)"
             options={{ headerShown: false }}
           />
-          <Stack.Screen
-            name="task/[id]"
-            options={{
-              title: 'Task Details',
-              presentation: 'modal',
-            }}
-          />
-          <Stack.Screen
+            <Stack.Screen
             name="add-task"
             options={{
               title: 'Add Task',

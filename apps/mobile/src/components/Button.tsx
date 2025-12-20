@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, ActivityIndicator, View } from 'react-native';
+import { Pressable, ActivityIndicator, View } from 'react-native';
 
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
@@ -11,42 +11,20 @@ interface ButtonProps {
   size?: ButtonSize;
   disabled?: boolean;
   loading?: boolean;
-  icon?: React.ReactNode;
   fullWidth?: boolean;
 }
 
-const variantStyles: Record<ButtonVariant, { container: string; text: string }> = {
-  primary: {
-    container: 'bg-accent active:bg-accent/80',
-    text: 'text-white',
-  },
-  secondary: {
-    container: 'bg-surfaceLight active:bg-surfaceLight/80',
-    text: 'text-text-primary',
-  },
-  danger: {
-    container: 'bg-danger active:bg-danger/80',
-    text: 'text-white',
-  },
-  ghost: {
-    container: 'bg-transparent active:bg-surfaceLight/50',
-    text: 'text-text-secondary',
-  },
+const variantStyles: Record<ButtonVariant, string> = {
+  primary: 'bg-accent border-2 border-fire-400 active:bg-fire-400',
+  secondary: 'bg-fire-900 border-2 border-fire-600 active:bg-fire-800',
+  danger: 'bg-fire-600 border-2 border-fire-400 active:bg-fire-500',
+  ghost: 'bg-transparent border-2 border-fire-800 active:bg-fire-900',
 };
 
-const sizeStyles: Record<ButtonSize, { container: string; text: string }> = {
-  sm: {
-    container: 'px-3 py-2 rounded-lg',
-    text: 'text-sm',
-  },
-  md: {
-    container: 'px-4 py-3 rounded-xl',
-    text: 'text-base',
-  },
-  lg: {
-    container: 'px-6 py-4 rounded-2xl',
-    text: 'text-lg',
-  },
+const sizeStyles: Record<ButtonSize, string> = {
+  sm: 'px-3 py-2 rounded-lg',
+  md: 'px-5 py-3 rounded-xl',
+  lg: 'px-6 py-4 rounded-2xl',
 };
 
 export function Button({
@@ -56,33 +34,26 @@ export function Button({
   size = 'md',
   disabled = false,
   loading = false,
-  icon,
   fullWidth = false,
 }: ButtonProps) {
-  const variantStyle = variantStyles[variant];
-  const sizeStyle = sizeStyles[size];
-
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
       className={`
         flex-row items-center justify-center
-        ${variantStyle.container}
-        ${sizeStyle.container}
+        ${variantStyles[variant]}
+        ${sizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}
         ${disabled ? 'opacity-50' : ''}
       `}
     >
       {loading ? (
-        <ActivityIndicator color="white" size="small" />
+        <ActivityIndicator color="#ffffff" size="small" />
       ) : (
-        <>
-          {icon && <View className="mr-2">{icon}</View>}
-          <Text className={`font-semibold ${variantStyle.text} ${sizeStyle.text}`}>
-            {children}
-          </Text>
-        </>
+        <View className="flex-row items-center justify-center">
+          {children}
+        </View>
       )}
     </Pressable>
   );

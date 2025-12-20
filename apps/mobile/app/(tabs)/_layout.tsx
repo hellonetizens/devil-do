@@ -1,21 +1,20 @@
 import { Tabs } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 type TabIconProps = {
   focused: boolean;
-  icon: string;
-  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
 };
 
-function TabIcon({ focused, icon, label }: TabIconProps) {
+function TabIcon({ focused, icon }: TabIconProps) {
   return (
     <View className="items-center justify-center pt-2">
-      <Text style={{ fontSize: 24 }}>{icon}</Text>
-      <Text
-        className={`text-xs mt-1 ${focused ? 'text-accent' : 'text-text-muted'}`}
-      >
-        {label}
-      </Text>
+      <Ionicons
+        name={icon}
+        size={28}
+        color={focused ? '#ff2222' : '#994444'}
+      />
     </View>
   );
 }
@@ -25,19 +24,28 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: '#1a1a2e',
-          borderTopColor: '#252542',
+          backgroundColor: '#1a0505',
+          borderTopColor: '#4a0000',
           borderTopWidth: 1,
-          height: 80,
-          paddingBottom: 20,
+          height: 70,
+          paddingBottom: 10,
         },
-        tabBarShowLabel: false,
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: '#ff2222',
+        tabBarInactiveTintColor: '#994444',
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+        },
         headerStyle: {
-          backgroundColor: '#0f0f1a',
+          backgroundColor: '#0a0000',
+          borderBottomColor: '#4a0000',
+          borderBottomWidth: 1,
         },
-        headerTintColor: '#ffffff',
+        headerTintColor: '#ff2222',
         headerTitleStyle: {
           fontWeight: 'bold',
+          color: '#ffffff',
         },
       }}
     >
@@ -46,7 +54,7 @@ export default function TabLayout() {
         options={{
           title: 'Tasks',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="📋" label="Tasks" />
+            <TabIcon focused={focused} icon="checkmark-circle" />
           ),
         }}
       />
@@ -55,7 +63,7 @@ export default function TabLayout() {
         options={{
           title: 'Focus',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="🎯" label="Focus" />
+            <TabIcon focused={focused} icon="flame" />
           ),
         }}
       />
@@ -64,16 +72,16 @@ export default function TabLayout() {
         options={{
           title: 'Projects',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="📁" label="Projects" />
+            <TabIcon focused={focused} icon="folder" />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: 'Devil',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="😈" label="Devil" />
+            <TabIcon focused={focused} icon="skull" />
           ),
         }}
       />
