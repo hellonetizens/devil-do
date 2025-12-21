@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,8 +21,10 @@ import '../global.css';
 
 const queryClient = new QueryClient();
 
-// Keep splash screen visible while loading fonts
-SplashScreen.preventAutoHideAsync().catch(() => {});
+// Keep splash screen visible while loading fonts (native only)
+if (Platform.OS !== 'web') {
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+}
 
 function useProtectedRoute(hasCompletedOnboarding: boolean | null) {
   const segments = useSegments();
@@ -60,27 +62,36 @@ export default function RootLayout() {
 
   // Check onboarding status
   useEffect(() => {
+    let mounted = true;
+
     const checkOnboarding = async () => {
       try {
         const completed = await AsyncStorage.getItem('onboarding_completed');
-        setHasCompletedOnboarding(completed === 'true');
+        if (mounted) {
+          setHasCompletedOnboarding(completed === 'true');
+        }
       } catch (error) {
         // If AsyncStorage fails, assume onboarding not completed
         console.warn('AsyncStorage error:', error);
-        setHasCompletedOnboarding(false);
+        if (mounted) {
+          setHasCompletedOnboarding(false);
+        }
       }
     };
 
-    // Timeout fallback
+    // Timeout fallback - use shorter timeout on web
     const timeout = setTimeout(() => {
-      if (hasCompletedOnboarding === null) {
-        setHasCompletedOnboarding(false);
+      if (mounted) {
+        setHasCompletedOnboarding(prev => prev === null ? false : prev);
       }
-    }, 2000);
+    }, Platform.OS === 'web' ? 500 : 2000);
 
     checkOnboarding();
 
-    return () => clearTimeout(timeout);
+    return () => {
+      mounted = false;
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Initialize auth listener with timeout fallback
@@ -141,11 +152,16 @@ export default function RootLayout() {
   }, [fontsLoaded, isInitialized]);
 
   // Show loading screen while fonts load or onboarding status is being checked
-  if ((!fontsLoaded && !fontError) || hasCompletedOnboarding === null) {
+  // On web, don't wait for fonts - they load async anyway
+  const isLoading = Platform.OS === 'web'
+    ? hasCompletedOnboarding === null
+    : ((!fontsLoaded && !fontError) || hasCompletedOnboarding === null);
+
+  if (isLoading) {
     return (
-      <View className="flex-1 bg-background items-center justify-center">
+      <View style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator size="large" color="#ff2222" />
-        <Text className="text-fire-400 mt-4">Summoning the devil...</Text>
+        <Text style={{ color: '#ff2222', marginTop: 16 }}>Summoning the devil...</Text>
       </View>
     );
   }
