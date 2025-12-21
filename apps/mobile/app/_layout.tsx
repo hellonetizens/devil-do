@@ -125,7 +125,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <View className="flex-1 bg-background" onLayout={onLayoutRootView}>
+      <View className="flex-1 bg-black" onLayout={onLayoutRootView}>
         <StatusBar style="light" />
         <LevelUpToast />
         <MicroAchievementToast />
@@ -133,14 +133,14 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerStyle: {
-              backgroundColor: '#0f0f1a',
+              backgroundColor: '#000000',
             },
             headerTintColor: '#ffffff',
             headerTitleStyle: {
-              fontWeight: 'bold',
+              fontWeight: '600',
             },
             contentStyle: {
-              backgroundColor: '#0f0f1a',
+              backgroundColor: '#000000',
             },
           }}
         >

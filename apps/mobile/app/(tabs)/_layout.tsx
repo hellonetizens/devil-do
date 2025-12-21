@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../src/design/tokens';
 
 type TabIconProps = {
   focused: boolean;
@@ -12,8 +13,8 @@ function TabIcon({ focused, icon }: TabIconProps) {
     <View className="items-center justify-center pt-2">
       <Ionicons
         name={icon}
-        size={28}
-        color={focused ? '#ff2222' : '#994444'}
+        size={24}
+        color={focused ? colors.pop.DEFAULT : colors.gray[600]}
       />
     </View>
   );
@@ -24,38 +25,38 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: '#1a0505',
-          borderTopColor: '#4a0000',
+          backgroundColor: colors.black,
+          borderTopColor: colors.gray[900],
           borderTopWidth: 1,
           height: 70,
           paddingBottom: 10,
         },
         tabBarShowLabel: true,
-        tabBarActiveTintColor: '#ff2222',
-        tabBarInactiveTintColor: '#994444',
+        tabBarActiveTintColor: colors.pop.DEFAULT,
+        tabBarInactiveTintColor: colors.gray[600],
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '500',
         },
         headerStyle: {
-          backgroundColor: '#0a0000',
-          borderBottomColor: '#4a0000',
+          backgroundColor: colors.black,
+          borderBottomColor: colors.gray[900],
           borderBottomWidth: 1,
         },
-        headerTintColor: '#ff2222',
+        headerTintColor: colors.white,
         headerTitleStyle: {
-          fontWeight: 'bold',
-          color: '#ffffff',
+          fontWeight: '600',
+          color: colors.white,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Diablo',
+          title: 'Home',
           headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="flame" />
+            <TabIcon focused={focused} icon="home" />
           ),
         }}
       />
@@ -63,8 +64,9 @@ export default function TabLayout() {
         name="focus"
         options={{
           title: 'Focus',
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="timer" />
+            <TabIcon focused={focused} icon="timer-outline" />
           ),
         }}
       />
@@ -72,8 +74,9 @@ export default function TabLayout() {
         name="projects"
         options={{
           title: 'Bets',
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="trophy" />
+            <TabIcon focused={focused} icon="trophy-outline" />
           ),
         }}
       />
@@ -81,8 +84,9 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Stats',
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="stats-chart" />
+            <TabIcon focused={focused} icon="bar-chart-outline" />
           ),
         }}
       />
