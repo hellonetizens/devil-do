@@ -22,6 +22,38 @@ export interface UserPreferences {
 export type TaskPriority = 'urgent' | 'normal' | 'someday';
 export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'abandoned';
 
+// Energy levels for ADHD-friendly task matching
+// Matches tasks to current mental/physical state
+export type EnergyLevel = 'zombie' | 'low' | 'medium' | 'high' | 'hyperfocus';
+
+export const ENERGY_LEVELS: Record<EnergyLevel, { emoji: string; label: string; description: string }> = {
+  zombie: {
+    emoji: '🧟',
+    label: 'Zombie Mode',
+    description: 'Barely functioning, need mindless tasks',
+  },
+  low: {
+    emoji: '😴',
+    label: 'Low Energy',
+    description: 'Tired but can do simple things',
+  },
+  medium: {
+    emoji: '😐',
+    label: 'Medium Energy',
+    description: 'Normal focus, regular tasks',
+  },
+  high: {
+    emoji: '⚡',
+    label: 'High Energy',
+    description: 'Feeling good, tackle harder tasks',
+  },
+  hyperfocus: {
+    emoji: '🚀',
+    label: 'Hyperfocus Mode',
+    description: 'In the zone, do the big stuff!',
+  },
+};
+
 export interface Task {
   id: string;
   user_id: string;
@@ -30,6 +62,8 @@ export interface Task {
   description?: string;
   priority: TaskPriority;
   status: TaskStatus;
+  energy_required?: EnergyLevel; // Energy level needed for this task
+  estimated_minutes?: number; // How long the task takes (ADHD time blindness help)
   due_date?: string;
   completed_at?: string;
   created_at: string;
@@ -42,6 +76,8 @@ export interface CreateTaskInput {
   title: string;
   description?: string;
   priority?: TaskPriority;
+  energy_required?: EnergyLevel;
+  estimated_minutes?: number;
   due_date?: string;
   project_id?: string;
   parent_task_id?: string;

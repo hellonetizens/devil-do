@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { Input, Button, Devil } from '../src/components';
 import { useTaskStore } from '../src/stores/taskStore';
 import { useDevilStore } from '../src/stores/devilStore';
+import { useAuthStore } from '../src/stores/authStore';
 import type { TaskPriority } from '../src/types';
 
 const PRIORITIES: { value: TaskPriority; label: string; emoji: string }[] = [
@@ -18,8 +19,9 @@ export default function AddTaskScreen() {
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { addLocalTask } = useTaskStore();
+  const { addLocalTask, addTask } = useTaskStore();
   const { triggerShame } = useDevilStore();
+  const { user } = useAuthStore();
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
@@ -27,11 +29,18 @@ export default function AddTaskScreen() {
     setIsSubmitting(true);
 
     try {
-      addLocalTask({
+      const taskInput = {
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
-      });
+      };
+
+      // Use cloud storage if authenticated, otherwise local
+      if (user) {
+        await addTask(user.uid, taskInput);
+      } else {
+        addLocalTask(taskInput);
+      }
 
       // Devil reacts to new task
       if (priority === 'someday') {

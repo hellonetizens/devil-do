@@ -52,9 +52,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tasks',
+          title: 'Diablo',
+          headerShown: false,
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="checkmark-circle" />
+            <TabIcon focused={focused} icon="flame" />
           ),
         }}
       />
@@ -63,25 +64,25 @@ export default function TabLayout() {
         options={{
           title: 'Focus',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="flame" />
+            <TabIcon focused={focused} icon="timer" />
           ),
         }}
       />
       <Tabs.Screen
         name="projects"
         options={{
-          title: 'Projects',
+          title: 'Bets',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="folder" />
+            <TabIcon focused={focused} icon="trophy" />
           ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Devil',
+          title: 'Stats',
           tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="skull" />
+            <TabIcon focused={focused} icon="stats-chart" />
           ),
         }}
       />

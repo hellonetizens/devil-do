@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useXPStore } from './xpStore';
+import { useMicroAchievementStore } from './microAchievementStore';
+import { haptics } from '../services/haptics';
 
 type FocusPhase = 'idle' | 'focus' | 'break';
 
@@ -122,6 +125,12 @@ export const useFocusStore = create<FocusState>()(
 
       abandon: () => {
         const { focusDuration, focusStreak } = get();
+
+        // Lose XP for abandoning
+        const xpStore = useXPStore.getState();
+        xpStore.addXP('FOCUS_SESSION_ABANDONED', 'Abandoned focus session');
+        haptics.error();
+
         // Breaking a session resets the streak
         set({
           phase: 'idle',
@@ -160,6 +169,25 @@ export const useFocusStore = create<FocusState>()(
 
         if (phase === 'focus') {
           const newStreak = focusStreak + 1;
+
+          // Award XP for completing focus session
+          const xpStore = useXPStore.getState();
+          xpStore.addXP('FOCUS_SESSION_COMPLETE', 'Focus session complete!');
+          haptics.success();
+
+          // Trigger micro-achievement
+          const microStore = useMicroAchievementStore.getState();
+          microStore.onFocusComplete(focusDuration);
+
+          // Bonus XP for streak milestones
+          if (newStreak === 7) {
+            xpStore.addXP('STREAK_MILESTONE_7', '7-day streak!');
+          } else if (newStreak === 30) {
+            xpStore.addXP('STREAK_MILESTONE_30', '30-day streak!');
+          } else if (newStreak === 100) {
+            xpStore.addXP('STREAK_MILESTONE_100', '100-day streak!');
+          }
+
           set({
             phase: 'idle',
             timeRemaining: 0,
