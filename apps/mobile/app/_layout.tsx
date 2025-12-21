@@ -61,16 +61,43 @@ export default function RootLayout() {
   // Check onboarding status
   useEffect(() => {
     const checkOnboarding = async () => {
-      const completed = await AsyncStorage.getItem('onboarding_completed');
-      setHasCompletedOnboarding(completed === 'true');
+      try {
+        const completed = await AsyncStorage.getItem('onboarding_completed');
+        setHasCompletedOnboarding(completed === 'true');
+      } catch (error) {
+        // If AsyncStorage fails, assume onboarding not completed
+        console.warn('AsyncStorage error:', error);
+        setHasCompletedOnboarding(false);
+      }
     };
+
+    // Timeout fallback
+    const timeout = setTimeout(() => {
+      if (hasCompletedOnboarding === null) {
+        setHasCompletedOnboarding(false);
+      }
+    }, 2000);
+
     checkOnboarding();
+
+    return () => clearTimeout(timeout);
   }, []);
 
-  // Initialize auth listener
+  // Initialize auth listener with timeout fallback
   useEffect(() => {
     const unsubscribe = initialize();
-    return () => unsubscribe();
+
+    // Timeout fallback - if auth doesn't initialize in 3 seconds, proceed anyway
+    const timeout = setTimeout(() => {
+      if (!useAuthStore.getState().isInitialized) {
+        useAuthStore.setState({ isInitialized: true });
+      }
+    }, 3000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Initialize audio and notifications

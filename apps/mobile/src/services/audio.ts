@@ -1,5 +1,12 @@
-import { Audio } from 'expo-av';
-import { Sound } from 'expo-av/build/Audio';
+import { Platform } from 'react-native';
+
+// Only import Audio on native platforms
+let Audio: typeof import('expo-av').Audio | null = null;
+type Sound = import('expo-av/build/Audio').Sound;
+
+if (Platform.OS !== 'web') {
+  Audio = require('expo-av').Audio;
+}
 
 // Sound cache to avoid reloading
 const soundCache: Map<string, Sound> = new Map();
@@ -47,6 +54,8 @@ const SOUND_ASSETS: Record<SoundEffect, number | null> = {
 export const audio = {
   // Initialize audio settings
   init: async () => {
+    if (!Audio) return;
+
     try {
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: false, // Respect silent mode
@@ -70,7 +79,7 @@ export const audio = {
 
   // Play a sound effect
   play: async (effect: SoundEffect) => {
-    if (!isSoundEnabled) return;
+    if (!Audio || !isSoundEnabled) return;
 
     const asset = SOUND_ASSETS[effect];
     if (!asset) {

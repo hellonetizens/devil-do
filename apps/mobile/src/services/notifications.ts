@@ -1,15 +1,21 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Only import notifications on native platforms
+let Notifications: typeof import('expo-notifications') | null = null;
+
+if (Platform.OS !== 'web') {
+  Notifications = require('expo-notifications');
+
+  // Configure notification handler
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 // Devil shame messages for notifications
 const SHAME_MESSAGES = {
@@ -56,6 +62,8 @@ const NOTIFICATION_IDS = {
 export const notifications = {
   // Request permissions
   requestPermissions: async (): Promise<boolean> => {
+    if (!Notifications) return false;
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
 
     let finalStatus = existingStatus;
@@ -85,6 +93,8 @@ export const notifications = {
 
   // Schedule daily shame reminders
   scheduleDailyReminders: async () => {
+    if (!Notifications) return;
+
     // Cancel existing reminders first
     await notifications.cancelAllScheduled();
 
@@ -141,6 +151,8 @@ export const notifications = {
 
   // Schedule streak reminder
   scheduleStreakReminder: async () => {
+    if (!Notifications) return;
+
     // Remind at 8 PM if no tasks completed today
     await Notifications.scheduleNotificationAsync({
       identifier: NOTIFICATION_IDS.STREAK_REMINDER,
@@ -159,6 +171,8 @@ export const notifications = {
 
   // Send immediate notification
   sendNow: async (title: string, body: string) => {
+    if (!Notifications) return;
+
     await Notifications.scheduleNotificationAsync({
       content: {
         title,
@@ -209,36 +223,43 @@ export const notifications = {
 
   // Cancel all scheduled notifications
   cancelAllScheduled: async () => {
+    if (!Notifications) return;
     await Notifications.cancelAllScheduledNotificationsAsync();
   },
 
   // Cancel specific notification
   cancel: async (identifier: string) => {
+    if (!Notifications) return;
     await Notifications.cancelScheduledNotificationAsync(identifier);
   },
 
   // Get all scheduled notifications
   getScheduled: async () => {
+    if (!Notifications) return [];
     return await Notifications.getAllScheduledNotificationsAsync();
   },
 
   // Set badge count
   setBadge: async (count: number) => {
+    if (!Notifications) return;
     await Notifications.setBadgeCountAsync(count);
   },
 
   // Clear badge
   clearBadge: async () => {
+    if (!Notifications) return;
     await Notifications.setBadgeCountAsync(0);
   },
 
   // Add notification response listener
-  addResponseListener: (callback: (response: Notifications.NotificationResponse) => void) => {
+  addResponseListener: (callback: (response: any) => void) => {
+    if (!Notifications) return { remove: () => {} };
     return Notifications.addNotificationResponseReceivedListener(callback);
   },
 
   // Add notification received listener
-  addReceivedListener: (callback: (notification: Notifications.Notification) => void) => {
+  addReceivedListener: (callback: (notification: any) => void) => {
+    if (!Notifications) return { remove: () => {} };
     return Notifications.addNotificationReceivedListener(callback);
   },
 };
