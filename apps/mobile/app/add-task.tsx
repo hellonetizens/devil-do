@@ -1,150 +1,238 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, TextInput, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Input, Button, Devil } from '../src/components';
+import { MotiPressable, MotiView } from 'moti';
+import { Ionicons } from '@expo/vector-icons';
 import { useTaskStore } from '../src/stores/taskStore';
-import { useDevilStore } from '../src/stores/devilStore';
 import { useAuthStore } from '../src/stores/authStore';
-import type { TaskPriority } from '../src/types';
+import { colors } from '../src/design/tokens';
+import { haptics } from '../src/services/haptics';
+import type { TaskPriority, EnergyLevel } from '../src/types';
 
-const PRIORITIES: { value: TaskPriority; label: string; emoji: string }[] = [
-  { value: 'urgent', label: 'Urgent', emoji: '🔥' },
-  { value: 'normal', label: 'Normal', emoji: '📌' },
-  { value: 'someday', label: 'Someday', emoji: '💤' },
+const PRIORITIES: { value: TaskPriority; label: string; description: string }[] = [
+  { value: 'urgent', label: 'Urgent', description: 'Do it now' },
+  { value: 'normal', label: 'Normal', description: 'Do it today' },
+  { value: 'someday', label: 'Someday', description: 'Eventually' },
 ];
 
+const ENERGY_LEVELS: { value: EnergyLevel; emoji: string; label: string }[] = [
+  { value: 'zombie', emoji: '🧟', label: 'Zombie' },
+  { value: 'low', emoji: '😴', label: 'Low' },
+  { value: 'medium', emoji: '😐', label: 'Medium' },
+  { value: 'high', emoji: '⚡', label: 'High' },
+  { value: 'hyperfocus', emoji: '🚀', label: 'Hyper' },
+];
+
+const QUICK_TASKS = ['Drink water', 'Take a break', 'Reply to email', 'Exercise', 'Clean desk'];
+
 export default function AddTaskScreen() {
+  const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TaskPriority>('normal');
+  const [energy, setEnergy] = useState<EnergyLevel | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { addLocalTask, addTask } = useTaskStore();
-  const { triggerShame } = useDevilStore();
   const { user } = useAuthStore();
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
-
     setIsSubmitting(true);
+    haptics.light();
 
     try {
       const taskInput = {
         title: title.trim(),
         description: description.trim() || undefined,
         priority,
+        energy_required: energy,
       };
 
-      // Use cloud storage if authenticated, otherwise local
       if (user) {
         await addTask(user.uid, taskInput);
       } else {
         addLocalTask(taskInput);
       }
 
-      // Devil reacts to new task
-      if (priority === 'someday') {
-        triggerShame('app_open'); // Snarky about "someday" tasks
-      }
-
+      haptics.success();
       router.back();
     } catch (error) {
       console.error('Error adding task:', error);
+      haptics.error();
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1 px-4 pt-4">
-        {/* Devil commentary */}
-        <View className="items-center mb-6">
-          <Devil size="sm" showMessage={true} />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-black"
+    >
+      <View className="flex-1" style={{ paddingTop: insets.top }}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-900">
+          <Pressable onPress={() => router.back()}>
+            <Text className="text-gray-400">Cancel</Text>
+          </Pressable>
+          <Text className="text-white font-semibold">New Task</Text>
+          <MotiPressable
+            onPress={handleSubmit}
+            disabled={!title.trim() || isSubmitting}
+            animate={{
+              opacity: title.trim() ? 1 : 0.5,
+            }}
+            transition={{ type: 'timing', duration: 150 }}
+          >
+            <Text className="text-pop font-semibold">Add</Text>
+          </MotiPressable>
         </View>
 
-        {/* Title input */}
-        <View className="mb-4">
-          <Input
-            label="What needs to be done?"
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Enter task title..."
-            autoFocus
-          />
-        </View>
-
-        {/* Description input */}
-        <View className="mb-4">
-          <Input
-            label="Details (optional)"
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Add more details..."
-            multiline
-            numberOfLines={3}
-          />
-        </View>
-
-        {/* Priority selector */}
-        <View className="mb-6">
-          <Text className="text-text-secondary text-sm mb-2 font-medium">
-            Priority
-          </Text>
-          <View className="flex-row">
-            {PRIORITIES.map((item) => (
-              <Pressable
-                key={item.value}
-                onPress={() => setPriority(item.value)}
-                className={`
-                  flex-1 p-4 rounded-xl mx-1 items-center
-                  ${priority === item.value ? 'bg-accent' : 'bg-surfaceLight'}
-                `}
-              >
-                <Text className="text-2xl mb-1">{item.emoji}</Text>
-                <Text
-                  className={`font-medium ${
-                    priority === item.value ? 'text-white' : 'text-text-secondary'
-                  }`}
-                >
-                  {item.label}
-                </Text>
-              </Pressable>
-            ))}
+        <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
+          {/* Title */}
+          <View className="py-4">
+            <TextInput
+              value={title}
+              onChangeText={setTitle}
+              placeholder="What needs to be done?"
+              placeholderTextColor={colors.gray[600]}
+              className="text-white text-xl"
+              autoFocus
+            />
           </View>
-        </View>
 
-        {/* Quick suggestions */}
-        <View className="mb-6">
-          <Text className="text-text-muted text-sm mb-2">Quick add:</Text>
-          <View className="flex-row flex-wrap">
-            {['Drink water', 'Take a break', 'Reply to email', 'Exercise'].map(
-              (suggestion) => (
+          {/* Description */}
+          <View className="py-4 border-t border-gray-900">
+            <TextInput
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Add details (optional)"
+              placeholderTextColor={colors.gray[600]}
+              className="text-gray-300"
+              multiline
+            />
+          </View>
+
+          {/* Priority */}
+          <View className="py-4 border-t border-gray-900">
+            <Text className="text-gray-500 text-xs mb-3">PRIORITY</Text>
+            <View className="flex-row gap-2">
+              {PRIORITIES.map((p) => (
+                <MotiPressable
+                  key={p.value}
+                  onPress={() => {
+                    haptics.selection();
+                    setPriority(p.value);
+                  }}
+                  animate={{
+                    backgroundColor: priority === p.value
+                      ? p.value === 'urgent' ? colors.pop.DEFAULT : colors.gray[700]
+                      : colors.gray[900],
+                  }}
+                  transition={{ type: 'timing', duration: 150 }}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    paddingHorizontal: 12,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    borderWidth: 1,
+                    borderColor: priority === p.value
+                      ? p.value === 'urgent' ? colors.pop.DEFAULT : colors.gray[600]
+                      : colors.gray[800],
+                  }}
+                >
+                  <Text className={`font-medium text-sm ${
+                    priority === p.value ? 'text-white' : 'text-gray-400'
+                  }`}>
+                    {p.label}
+                  </Text>
+                </MotiPressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Energy Level */}
+          <View className="py-4 border-t border-gray-900">
+            <Text className="text-gray-500 text-xs mb-3">ENERGY REQUIRED</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View className="flex-row gap-2">
+                {ENERGY_LEVELS.map((e) => (
+                  <MotiPressable
+                    key={e.value}
+                    onPress={() => {
+                      haptics.selection();
+                      setEnergy(energy === e.value ? undefined : e.value);
+                    }}
+                    animate={{
+                      backgroundColor: energy === e.value ? colors.gray[700] : colors.gray[900],
+                    }}
+                    transition={{ type: 'timing', duration: 150 }}
+                    style={{
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      borderRadius: 12,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      borderWidth: 1,
+                      borderColor: energy === e.value ? colors.gray[600] : colors.gray[800],
+                    }}
+                  >
+                    <Text className="text-lg mr-1">{e.emoji}</Text>
+                    <Text className={`text-sm ${energy === e.value ? 'text-white' : 'text-gray-400'}`}>
+                      {e.label}
+                    </Text>
+                  </MotiPressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Quick Tasks */}
+          <View className="py-4 border-t border-gray-900">
+            <Text className="text-gray-500 text-xs mb-3">QUICK ADD</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {QUICK_TASKS.map((task) => (
                 <Pressable
-                  key={suggestion}
-                  onPress={() => setTitle(suggestion)}
-                  className="bg-surfaceLight px-3 py-2 rounded-lg mr-2 mb-2"
+                  key={task}
+                  onPress={() => {
+                    haptics.light();
+                    setTitle(task);
+                  }}
+                  className="bg-gray-900 border border-gray-800 px-3 py-2 rounded-lg"
                 >
-                  <Text className="text-text-secondary text-sm">{suggestion}</Text>
+                  <Text className="text-gray-400 text-sm">{task}</Text>
                 </Pressable>
-              )
-            )}
+              ))}
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
 
-      {/* Submit button */}
-      <View className="px-4 pb-8 pt-4 bg-background">
-        <Button
-          onPress={handleSubmit}
-          disabled={!title.trim()}
-          loading={isSubmitting}
-          fullWidth
-          size="lg"
-        >
-          Add Task
-        </Button>
+        {/* Submit Button */}
+        <View className="px-6 pb-4" style={{ paddingBottom: Math.max(insets.bottom, 16) }}>
+          <MotiPressable
+            onPress={handleSubmit}
+            disabled={!title.trim() || isSubmitting}
+            animate={({ pressed }) => ({
+              scale: pressed ? 0.97 : 1,
+              opacity: title.trim() && !isSubmitting ? 1 : 0.5,
+            })}
+            transition={{ type: 'timing', duration: 100 }}
+            style={{
+              backgroundColor: colors.pop.DEFAULT,
+              paddingVertical: 16,
+              borderRadius: 16,
+              alignItems: 'center',
+            }}
+          >
+            <Text className="text-white font-semibold text-lg">
+              {isSubmitting ? 'Adding...' : 'Add Task'}
+            </Text>
+          </MotiPressable>
+        </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }

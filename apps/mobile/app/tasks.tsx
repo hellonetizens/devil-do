@@ -1,36 +1,26 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  Alert,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { MotiView, MotiPressable } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { useTaskStore } from '../src/stores/taskStore';
-import { useAuthStore } from '../src/stores/authStore';
 import { useDevilStore } from '../src/stores/devilStore';
-import type { Task, TaskStatus } from '../src/types';
+import { colors } from '../src/design/tokens';
+import type { Task } from '../src/types';
 
 type FilterType = 'all' | 'pending' | 'completed' | 'abandoned';
 
-const FILTERS: { value: FilterType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { value: 'all', label: 'All', icon: 'list' },
-  { value: 'pending', label: 'Pending', icon: 'time' },
-  { value: 'completed', label: 'Done', icon: 'checkmark-circle' },
-  { value: 'abandoned', label: 'Failed', icon: 'close-circle' },
+const FILTERS: { value: FilterType; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'pending', label: 'To Do' },
+  { value: 'completed', label: 'Done' },
+  { value: 'abandoned', label: 'Failed' },
 ];
 
-const PRIORITY_COLORS = {
-  urgent: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-600' },
-  normal: { bg: 'bg-fire-900', text: 'text-fire-200', border: 'border-fire-700' },
-  someday: { bg: 'bg-fire-950', text: 'text-fire-400', border: 'border-fire-800' },
-};
-
 export default function TasksScreen() {
+  const insets = useSafeAreaInsets();
   const { tasks, completeTask, abandonTask, deleteLocalTask, deleteTask } = useTaskStore();
-  const { user } = useAuthStore();
   const { triggerShame } = useDevilStore();
   const [filter, setFilter] = useState<FilterType>('pending');
 
@@ -46,42 +36,34 @@ export default function TasksScreen() {
   };
 
   const handleAbandon = async (task: Task) => {
-    Alert.alert(
-      'Abandon Task?',
-      'The devil will be very pleased...',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Give Up',
-          style: 'destructive',
-          onPress: async () => {
-            await abandonTask(task.id);
-            triggerShame('session_abandoned', { taskTitle: task.title });
-          },
+    Alert.alert('Give up?', 'The devil will be pleased...', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Give Up',
+        style: 'destructive',
+        onPress: async () => {
+          await abandonTask(task.id);
+          triggerShame('session_abandoned', { taskTitle: task.title });
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleDelete = async (task: Task) => {
-    Alert.alert(
-      'Delete Task?',
-      'This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (task.id.startsWith('local_')) {
-              deleteLocalTask(task.id);
-            } else {
-              await deleteTask(task.id);
-            }
-          },
+    Alert.alert('Delete?', 'This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          if (task.id.startsWith('local_')) {
+            deleteLocalTask(task.id);
+          } else {
+            await deleteTask(task.id);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const isOverdue = (task: Task) => {
@@ -89,192 +71,170 @@ export default function TasksScreen() {
     return new Date(task.due_date) < new Date();
   };
 
-  const renderTask = (task: Task) => {
-    const priority = PRIORITY_COLORS[task.priority] || PRIORITY_COLORS.normal;
-    const overdue = isOverdue(task);
-
-    return (
-      <View
-        key={task.id}
-        className={`${priority.bg} border ${overdue ? 'border-red-500' : priority.border} rounded-xl p-4 mb-3`}
-      >
-        <View className="flex-row items-start">
-          {/* Status indicator */}
-          <View className="mr-3 mt-1">
-            {task.status === 'completed' ? (
-              <Ionicons name="checkmark-circle" size={24} color="#44ff44" />
-            ) : task.status === 'abandoned' ? (
-              <Ionicons name="close-circle" size={24} color="#ff4444" />
-            ) : (
-              <Pressable onPress={() => handleComplete(task)}>
-                <Ionicons name="ellipse-outline" size={24} color="#994444" />
-              </Pressable>
-            )}
-          </View>
-
-          {/* Task content */}
-          <View className="flex-1">
-            <Text
-              className={`font-medium text-base ${
-                task.status === 'completed'
-                  ? 'text-text-muted line-through'
-                  : task.status === 'abandoned'
-                  ? 'text-red-400 line-through'
-                  : priority.text
-              }`}
-            >
-              {task.title}
-            </Text>
-
-            {task.description && (
-              <Text className="text-text-muted text-sm mt-1" numberOfLines={2}>
-                {task.description}
-              </Text>
-            )}
-
-            <View className="flex-row items-center mt-2 flex-wrap">
-              {/* Priority badge */}
-              <View className={`px-2 py-0.5 rounded mr-2 mb-1 ${
-                task.priority === 'urgent' ? 'bg-red-500/30' :
-                task.priority === 'someday' ? 'bg-fire-800' : 'bg-fire-700'
-              }`}>
-                <Text className={`text-xs font-bold ${
-                  task.priority === 'urgent' ? 'text-red-400' : 'text-fire-300'
-                }`}>
-                  {task.priority.toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Overdue badge */}
-              {overdue && (
-                <View className="bg-red-500/30 px-2 py-0.5 rounded mr-2 mb-1">
-                  <Text className="text-red-400 text-xs font-bold">OVERDUE</Text>
-                </View>
-              )}
-
-              {/* Local badge */}
-              {task.id.startsWith('local_') && (
-                <View className="bg-yellow-500/20 px-2 py-0.5 rounded mb-1">
-                  <Text className="text-yellow-400 text-xs">LOCAL</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Actions */}
-          {task.status === 'pending' && (
-            <View className="flex-row ml-2">
-              <Pressable
-                onPress={() => handleAbandon(task)}
-                className="w-8 h-8 items-center justify-center"
-              >
-                <Ionicons name="flag" size={18} color="#ff4444" />
-              </Pressable>
-              <Pressable
-                onPress={() => handleDelete(task)}
-                className="w-8 h-8 items-center justify-center"
-              >
-                <Ionicons name="trash-outline" size={18} color="#666" />
-              </Pressable>
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   const pendingCount = tasks.filter(t => t.status === 'pending').length;
   const completedCount = tasks.filter(t => t.status === 'completed').length;
-  const abandonedCount = tasks.filter(t => t.status === 'abandoned').length;
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-black" style={{ paddingTop: insets.top }}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
+      <View className="flex-row items-center justify-between px-6 py-4">
         <View className="flex-row items-center">
           <Pressable onPress={() => router.back()} className="mr-4">
-            <Ionicons name="arrow-back" size={24} color="#ff2222" />
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
           </Pressable>
-          <Text className="text-fire-100 text-2xl font-bold">Tasks</Text>
+          <Text className="text-white text-xl font-semibold">Tasks</Text>
         </View>
-        <Pressable
+        <MotiPressable
           onPress={() => router.push('/add-task')}
-          className="w-10 h-10 bg-fire-600 rounded-full items-center justify-center active:bg-fire-700"
+          animate={({ pressed }) => ({ scale: pressed ? 0.95 : 1 })}
+          transition={{ type: 'timing', duration: 100 }}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: colors.pop.DEFAULT,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
-          <Ionicons name="add" size={24} color="#ffffff" />
-        </Pressable>
+          <Ionicons name="add" size={24} color={colors.white} />
+        </MotiPressable>
       </View>
 
       {/* Stats */}
-      <View className="flex-row px-4 py-3">
+      <View className="flex-row px-6 py-3">
         <View className="flex-1 items-center">
-          <Text className="text-yellow-400 text-xl font-bold">{pendingCount}</Text>
-          <Text className="text-text-muted text-xs">Pending</Text>
+          <Text className="text-white text-2xl font-bold">{pendingCount}</Text>
+          <Text className="text-gray-500 text-xs">To Do</Text>
         </View>
+        <View className="w-px bg-gray-800" />
         <View className="flex-1 items-center">
-          <Text className="text-green-400 text-xl font-bold">{completedCount}</Text>
-          <Text className="text-text-muted text-xs">Done</Text>
-        </View>
-        <View className="flex-1 items-center">
-          <Text className="text-red-400 text-xl font-bold">{abandonedCount}</Text>
-          <Text className="text-text-muted text-xs">Failed</Text>
+          <Text className="text-green-400 text-2xl font-bold">{completedCount}</Text>
+          <Text className="text-gray-500 text-xs">Done</Text>
         </View>
       </View>
 
-      {/* Filter tabs */}
-      <View className="flex-row px-4 pb-3">
+      {/* Filters */}
+      <View className="flex-row px-6 py-3 gap-2">
         {FILTERS.map((f) => (
-          <Pressable
+          <MotiPressable
             key={f.value}
             onPress={() => setFilter(f.value)}
-            className={`flex-1 py-2 mx-1 rounded-lg items-center ${
-              filter === f.value ? 'bg-fire-600' : 'bg-surface border border-fire-800'
-            }`}
+            animate={{
+              backgroundColor: filter === f.value ? colors.white : colors.gray[900],
+            }}
+            transition={{ type: 'timing', duration: 150 }}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              borderRadius: 12,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: filter === f.value ? colors.white : colors.gray[800],
+            }}
           >
-            <Ionicons
-              name={f.icon}
-              size={16}
-              color={filter === f.value ? '#ffffff' : '#994444'}
-            />
-            <Text
-              className={`text-xs mt-1 ${
-                filter === f.value ? 'text-white font-bold' : 'text-fire-400'
-              }`}
-            >
+            <Text style={{
+              fontSize: 13,
+              fontWeight: '500',
+              color: filter === f.value ? colors.black : colors.gray[400],
+            }}>
               {f.label}
             </Text>
-          </Pressable>
+          </MotiPressable>
         ))}
       </View>
 
-      {/* Task list */}
-      <ScrollView className="flex-1 px-4">
+      {/* Task List */}
+      <ScrollView className="flex-1 px-6" showsVerticalScrollIndicator={false}>
         {filteredTasks.length === 0 ? (
-          <View className="items-center py-12">
+          <View className="items-center py-16">
             <Text className="text-5xl mb-4">
               {filter === 'completed' ? '🎉' : filter === 'abandoned' ? '💀' : '✨'}
             </Text>
-            <Text className="text-fire-100 text-lg font-bold">
-              {filter === 'completed'
-                ? 'No completed tasks yet'
-                : filter === 'abandoned'
-                ? 'No failures... yet'
-                : filter === 'pending'
-                ? 'All caught up!'
-                : 'No tasks found'}
+            <Text className="text-white text-lg font-semibold">
+              {filter === 'pending' ? 'All caught up!' : 'Nothing here'}
             </Text>
-            <Text className="text-text-muted text-center mt-2">
-              {filter === 'pending'
-                ? "The devil is impressed... for now."
-                : "Add some tasks to get started."}
+            <Text className="text-gray-500 text-center mt-2">
+              {filter === 'pending' ? 'The devil is mildly impressed.' : 'Add some tasks to get started.'}
             </Text>
           </View>
         ) : (
-          <>
-            {filteredTasks.map(renderTask)}
-            <View className="h-8" />
-          </>
+          filteredTasks.map((task, index) => {
+            const overdue = isOverdue(task);
+            return (
+              <MotiView
+                key={task.id}
+                from={{ opacity: 0, translateY: 10 }}
+                animate={{ opacity: 1, translateY: 0 }}
+                transition={{ type: 'timing', duration: 200, delay: index * 50 }}
+                className="bg-gray-900 border border-gray-800 rounded-2xl p-4 mb-3"
+              >
+                <View className="flex-row items-start">
+                  {/* Checkbox */}
+                  <Pressable
+                    onPress={() => task.status === 'pending' && handleComplete(task)}
+                    className="mr-3 mt-0.5"
+                  >
+                    {task.status === 'completed' ? (
+                      <View className="w-6 h-6 rounded-full bg-green-500 items-center justify-center">
+                        <Ionicons name="checkmark" size={16} color={colors.white} />
+                      </View>
+                    ) : task.status === 'abandoned' ? (
+                      <View className="w-6 h-6 rounded-full bg-pop items-center justify-center">
+                        <Ionicons name="close" size={16} color={colors.white} />
+                      </View>
+                    ) : (
+                      <View className="w-6 h-6 rounded-full border-2 border-gray-600" />
+                    )}
+                  </Pressable>
+
+                  {/* Content */}
+                  <View className="flex-1">
+                    <Text className={`font-medium ${
+                      task.status === 'completed' ? 'text-gray-500 line-through' :
+                      task.status === 'abandoned' ? 'text-gray-500 line-through' :
+                      'text-white'
+                    }`}>
+                      {task.title}
+                    </Text>
+
+                    {task.description && (
+                      <Text className="text-gray-500 text-sm mt-1" numberOfLines={2}>
+                        {task.description}
+                      </Text>
+                    )}
+
+                    <View className="flex-row items-center mt-2 gap-2">
+                      {task.priority === 'urgent' && (
+                        <View className="bg-pop/20 px-2 py-0.5 rounded">
+                          <Text className="text-pop text-xs font-medium">URGENT</Text>
+                        </View>
+                      )}
+                      {overdue && (
+                        <View className="bg-pop/20 px-2 py-0.5 rounded">
+                          <Text className="text-pop text-xs font-medium">OVERDUE</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  {/* Actions */}
+                  {task.status === 'pending' && (
+                    <View className="flex-row">
+                      <Pressable onPress={() => handleAbandon(task)} className="p-2">
+                        <Ionicons name="flag-outline" size={18} color={colors.gray[600]} />
+                      </Pressable>
+                      <Pressable onPress={() => handleDelete(task)} className="p-2">
+                        <Ionicons name="trash-outline" size={18} color={colors.gray[600]} />
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              </MotiView>
+            );
+          })
         )}
+        <View className="h-8" />
       </ScrollView>
     </View>
   );
