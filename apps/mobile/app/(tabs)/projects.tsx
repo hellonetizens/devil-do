@@ -1,8 +1,38 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, Pressable, RefreshControl, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MotiView, MotiPressable } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
+
+let MotiView: any = View;
+let MotiPressable: any = Pressable;
+const isWeb = Platform.OS === 'web';
+if (!isWeb) {
+  const m = require('moti');
+  MotiView = m.MotiView;
+  MotiPressable = m.MotiPressable;
+}
+
+// Web-safe button wrapper
+function AnimatedButton({ onPress, style, children, disabled }: any) {
+  if (isWeb) {
+    return (
+      <Pressable onPress={onPress} style={style} disabled={disabled}>
+        {children}
+      </Pressable>
+    );
+  }
+  return (
+    <MotiPressable
+      onPress={onPress}
+      disabled={disabled}
+      animate={({ pressed }: any) => ({ scale: pressed ? 0.97 : 1 })}
+      transition={{ type: 'timing', duration: 100 }}
+      style={style}
+    >
+      {children}
+    </MotiPressable>
+  );
+}
 import { router } from 'expo-router';
 import { useDevilChatStore, getBetStats } from '../../src/stores/devilChatStore';
 import { colors } from '../../src/design/tokens';
@@ -120,10 +150,8 @@ export default function BetsScreen() {
 
         {isActive && (
           <View className="flex-row mt-4 gap-2">
-            <MotiPressable
+            <AnimatedButton
               onPress={() => resolveBet(bet.id, 'user')}
-              animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-              transition={{ type: 'timing', duration: 100 }}
               style={{
                 flex: 1,
                 backgroundColor: colors.success,
@@ -133,11 +161,9 @@ export default function BetsScreen() {
               }}
             >
               <Text className="text-white font-semibold">I Did It</Text>
-            </MotiPressable>
-            <MotiPressable
+            </AnimatedButton>
+            <AnimatedButton
               onPress={() => resolveBet(bet.id, 'devil')}
-              animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-              transition={{ type: 'timing', duration: 100 }}
               style={{
                 flex: 1,
                 backgroundColor: colors.gray[800],
@@ -147,7 +173,7 @@ export default function BetsScreen() {
               }}
             >
               <Text className="text-gray-400 font-semibold">I Failed</Text>
-            </MotiPressable>
+            </AnimatedButton>
           </View>
         )}
       </MotiView>
@@ -234,10 +260,8 @@ export default function BetsScreen() {
             <Text className="text-gray-500 text-center mt-2 px-8">
               Challenge the devil by telling him what you're trying to accomplish.
             </Text>
-            <MotiPressable
+            <AnimatedButton
               onPress={() => router.navigate('/(tabs)')}
-              animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-              transition={{ type: 'timing', duration: 100 }}
               style={{
                 marginTop: 24,
                 backgroundColor: colors.pop.DEFAULT,
@@ -250,7 +274,7 @@ export default function BetsScreen() {
             >
               <Ionicons name="chatbubble" size={18} color={colors.white} />
               <Text className="text-white font-semibold ml-2">Challenge the Devil</Text>
-            </MotiPressable>
+            </AnimatedButton>
           </View>
         )}
 

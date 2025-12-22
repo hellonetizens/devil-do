@@ -1,9 +1,13 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, Switch, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Switch, Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { MotiPressable } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
+
+let MotiPressable: any = Pressable;
+if (Platform.OS !== 'web') {
+  MotiPressable = require('moti').MotiPressable;
+}
 import Slider from '@react-native-community/slider';
 import { useDevilStore } from '../src/stores/devilStore';
 import { useFocusStore } from '../src/stores/focusStore';

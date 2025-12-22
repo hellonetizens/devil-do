@@ -2,8 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { MotiPressable, MotiView } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
+
+let MotiPressable: any = Pressable;
+let MotiView: any = View;
+if (Platform.OS !== 'web') {
+  const moti = require('moti');
+  MotiPressable = moti.MotiPressable;
+  MotiView = moti.MotiView;
+}
 import { useTaskStore } from '../src/stores/taskStore';
 import { useAuthStore } from '../src/stores/authStore';
 import { colors } from '../src/design/tokens';

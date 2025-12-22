@@ -1,8 +1,38 @@
 import React from 'react';
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MotiView, MotiPressable } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
+
+let MotiView: any = View;
+let MotiPressable: any = Pressable;
+const isWeb = Platform.OS === 'web';
+if (!isWeb) {
+  const m = require('moti');
+  MotiView = m.MotiView;
+  MotiPressable = m.MotiPressable;
+}
+
+// Web-safe button wrapper
+function AnimatedButton({ onPress, style, children, disabled }: any) {
+  if (isWeb) {
+    return (
+      <Pressable onPress={onPress} style={style} disabled={disabled}>
+        {children}
+      </Pressable>
+    );
+  }
+  return (
+    <MotiPressable
+      onPress={onPress}
+      disabled={disabled}
+      animate={({ pressed }: any) => ({ scale: pressed ? 0.97 : 1 })}
+      transition={{ type: 'timing', duration: 100 }}
+      style={style}
+    >
+      {children}
+    </MotiPressable>
+  );
+}
 import { router } from 'expo-router';
 import { useDevilChatStore, getBetStats } from '../../src/stores/devilChatStore';
 import { useFocusStore } from '../../src/stores/focusStore';
@@ -207,11 +237,9 @@ export default function StatsScreen() {
           {user ? (
             <>
               <Text className="text-gray-500 text-sm mb-3">{user.email}</Text>
-              <MotiPressable
+              <AnimatedButton
                 onPress={handleSignOut}
                 disabled={isLoading}
-                animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-                transition={{ type: 'timing', duration: 100 }}
                 style={{
                   backgroundColor: colors.gray[800],
                   paddingVertical: 14,
@@ -224,15 +252,13 @@ export default function StatsScreen() {
                 ) : (
                   <Text className="text-gray-400 font-medium">Sign Out</Text>
                 )}
-              </MotiPressable>
+              </AnimatedButton>
             </>
           ) : (
             <>
               <Text className="text-gray-500 text-sm mb-3">Local mode - data on this device only</Text>
-              <MotiPressable
+              <AnimatedButton
                 onPress={() => router.push('/(auth)/login')}
-                animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-                transition={{ type: 'timing', duration: 100 }}
                 style={{
                   backgroundColor: colors.pop.DEFAULT,
                   paddingVertical: 14,
@@ -241,7 +267,7 @@ export default function StatsScreen() {
                 }}
               >
                 <Text className="text-white font-medium">Sign In to Sync</Text>
-              </MotiPressable>
+              </AnimatedButton>
             </>
           )}
         </View>

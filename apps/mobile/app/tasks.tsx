@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, Pressable, Alert, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { MotiView, MotiPressable } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
+
+let MotiView: any = View;
+let MotiPressable: any = Pressable;
+if (Platform.OS !== 'web') {
+  const m = require('moti');
+  MotiView = m.MotiView;
+  MotiPressable = m.MotiPressable;
+}
 import { useTaskStore } from '../src/stores/taskStore';
 import { useDevilStore } from '../src/stores/devilStore';
 import { colors } from '../src/design/tokens';

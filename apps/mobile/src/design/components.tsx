@@ -1,7 +1,14 @@
 import React from 'react';
-import { View, Text, Pressable, TextInput, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { MotiView, MotiPressable } from 'moti';
+import { View, Text, Pressable, TextInput, StyleSheet, ViewStyle, TextStyle, Platform } from 'react-native';
 import { colors, spacing, radius, typography, shadows } from './tokens';
+
+let MotiView: any = View;
+let MotiPressable: any = Pressable;
+if (Platform.OS !== 'web') {
+  const moti = require('moti');
+  MotiView = moti.MotiView;
+  MotiPressable = moti.MotiPressable;
+}
 
 // =============================================================================
 // BUTTON

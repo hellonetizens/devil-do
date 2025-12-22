@@ -1,13 +1,49 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { MotiView, MotiPressable } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle } from 'react-native-svg';
 import { useFocusStore } from '../../src/stores/focusStore';
 import { useDevilStore } from '../../src/stores/devilStore';
 import { colors } from '../../src/design/tokens';
 import { DevilMascot } from '../../src/design/DevilMascot';
+
+// Conditional imports for native-only features
+let Svg: any = null;
+let Circle: any = null;
+let MotiView: any = View;
+let MotiPressable: any = Pressable;
+const isWeb = Platform.OS === 'web';
+
+if (!isWeb) {
+  const svg = require('react-native-svg');
+  Svg = svg.default;
+  Circle = svg.Circle;
+  const moti = require('moti');
+  MotiView = moti.MotiView;
+  MotiPressable = moti.MotiPressable;
+}
+
+// Web-safe animated button
+function AnimatedButton({ onPress, style, children, disabled }: any) {
+  if (isWeb) {
+    return (
+      <Pressable onPress={onPress} style={style} disabled={disabled}>
+        {children}
+      </Pressable>
+    );
+  }
+  return (
+    <MotiPressable
+      onPress={onPress}
+      disabled={disabled}
+      animate={({ pressed }: any) => ({ scale: pressed ? 0.97 : 1 })}
+      transition={{ type: 'timing', duration: 100 }}
+      style={style}
+    >
+      {children}
+    </MotiPressable>
+  );
+}
 
 export default function FocusScreen() {
   const insets = useSafeAreaInsets();
@@ -95,21 +131,18 @@ export default function FocusScreen() {
       <View className="flex-1 items-center justify-center px-6">
         {/* Timer Ring */}
         <View className="relative items-center justify-center">
-          <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
-            {/* Background circle */}
-            <Circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              stroke={colors.gray[900]}
-              strokeWidth={strokeWidth}
-              fill="transparent"
-            />
-            {/* Progress circle */}
-            <MotiView
-              animate={{ opacity: isRunning ? 1 : 0.5 }}
-              transition={{ type: 'timing', duration: 300 }}
-            >
+          {Platform.OS !== 'web' && Svg && Circle ? (
+            <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
+              {/* Background circle */}
+              <Circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke={colors.gray[900]}
+                strokeWidth={strokeWidth}
+                fill="transparent"
+              />
+              {/* Progress circle */}
               <Circle
                 cx={size / 2}
                 cy={size / 2}
@@ -120,9 +153,22 @@ export default function FocusScreen() {
                 strokeDashoffset={strokeDashoffset}
                 strokeLinecap="round"
                 fill="transparent"
+                opacity={isRunning ? 1 : 0.5}
               />
-            </MotiView>
-          </Svg>
+            </Svg>
+          ) : (
+            /* Web fallback - simple circle border */
+            <View
+              style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderWidth: strokeWidth,
+                borderColor: phase === 'break' ? colors.success : colors.pop.DEFAULT,
+                opacity: isRunning ? 1 : 0.5,
+              }}
+            />
+          )}
 
           {/* Timer Content */}
           <View className="absolute items-center">
@@ -155,12 +201,8 @@ export default function FocusScreen() {
       {/* Controls */}
       <View className="px-6 pb-8" style={{ paddingBottom: Math.max(insets.bottom + 16, 24) }}>
         {phase === 'idle' ? (
-          <MotiPressable
+          <AnimatedButton
             onPress={() => startFocus()}
-            animate={({ pressed }) => ({
-              scale: pressed ? 0.97 : 1,
-            })}
-            transition={{ type: 'timing', duration: 100 }}
             style={{
               backgroundColor: colors.pop.DEFAULT,
               paddingVertical: 18,
@@ -172,14 +214,12 @@ export default function FocusScreen() {
           >
             <Ionicons name="play" size={24} color={colors.white} />
             <Text className="text-white font-semibold text-lg ml-2">Start Focus</Text>
-          </MotiPressable>
+          </AnimatedButton>
         ) : (
           <View className="flex-row gap-3">
             {isRunning ? (
-              <MotiPressable
+              <AnimatedButton
                 onPress={pause}
-                animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-                transition={{ type: 'timing', duration: 100 }}
                 style={{
                   flex: 1,
                   backgroundColor: colors.gray[900],
@@ -191,12 +231,10 @@ export default function FocusScreen() {
                 }}
               >
                 <Ionicons name="pause" size={24} color={colors.white} />
-              </MotiPressable>
+              </AnimatedButton>
             ) : (
-              <MotiPressable
+              <AnimatedButton
                 onPress={resume}
-                animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-                transition={{ type: 'timing', duration: 100 }}
                 style={{
                   flex: 1,
                   backgroundColor: colors.pop.DEFAULT,
@@ -206,12 +244,10 @@ export default function FocusScreen() {
                 }}
               >
                 <Ionicons name="play" size={24} color={colors.white} />
-              </MotiPressable>
+              </AnimatedButton>
             )}
-            <MotiPressable
+            <AnimatedButton
               onPress={handleAbandon}
-              animate={({ pressed }) => ({ scale: pressed ? 0.97 : 1 })}
-              transition={{ type: 'timing', duration: 100 }}
               style={{
                 flex: 1,
                 backgroundColor: colors.gray[900],
@@ -223,7 +259,7 @@ export default function FocusScreen() {
               }}
             >
               <Text className="text-gray-400 font-medium">Give Up</Text>
-            </MotiPressable>
+            </AnimatedButton>
           </View>
         )}
 

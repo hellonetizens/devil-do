@@ -1,7 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
-import Svg, { Path, Circle, G, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { MotiView } from 'moti';
+import { View, Text, Platform } from 'react-native';
 import { colors } from './tokens';
 
 type DevilMood = 'neutral' | 'happy' | 'angry' | 'smug' | 'disappointed' | 'impressed';
@@ -12,8 +10,25 @@ interface DevilProps {
   animated?: boolean;
 }
 
+// Simple emoji for web
+function WebDevil({ size = 80, mood = 'neutral' }: DevilProps) {
+  const emoji = mood === 'angry' ? '👿' : '😈';
+  return (
+    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontSize: size * 0.7 }}>{emoji}</Text>
+    </View>
+  );
+}
+
 // Minimalist devil mascot - geometric, clean, expressive
 export function Devil({ size = 80, mood = 'neutral', animated = true }: DevilProps) {
+  if (Platform.OS === 'web') {
+    return <WebDevil size={size} mood={mood} />;
+  }
+
+  const Svg = require('react-native-svg').default;
+  const { Path, Circle, G, Defs, LinearGradient, Stop } = require('react-native-svg');
+  const MotiView = require('moti').MotiView;
   const scale = size / 80;
 
   // Eye expressions based on mood

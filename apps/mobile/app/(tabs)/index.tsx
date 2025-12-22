@@ -3,16 +3,14 @@ import {
   View,
   Text,
   ScrollView,
-  Pressable,
+  TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { MotiView, MotiPressable, AnimatePresence } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DevilMascot, MascotMood } from '../../src/design/DevilMascot';
 import { colors } from '../../src/design/tokens';
 import { useTaskStore } from '../../src/stores/taskStore';
 import { useStreakStore } from '../../src/stores/streakStore';
@@ -22,319 +20,271 @@ import { useDevilChatStore, getBetStats } from '../../src/stores/devilChatStore'
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [inputText, setInputText] = useState('');
-  const [mascotMood, setMascotMood] = useState<MascotMood>('idle');
+  const [localMessage, setLocalMessage] = useState('');
 
   const { tasks } = useTaskStore();
   const { currentStreak, tasksCompletedToday, getEffectiveDailyGoal, dailyGoalMetToday } = useStreakStore();
-  const { level, getXPProgress, getLevelTitle } = useXPStore();
+  const { level, getLevelTitle } = useXPStore();
   const { bets, sendMessage, isTyping, lastMessage, startSession, devilMood } = useDevilChatStore();
 
   const pendingTasks = tasks.filter((t) => t.status === 'pending');
   const dailyGoal = getEffectiveDailyGoal();
-  const xpProgress = getXPProgress();
   const betStats = getBetStats(bets);
 
   useEffect(() => {
     startSession();
   }, []);
 
-  // Update mascot mood based on app state
-  useEffect(() => {
-    if (dailyGoalMetToday) {
-      setMascotMood('celebrating');
-    } else if (isTyping) {
-      setMascotMood('thinking');
-    } else if (devilMood === 'angry') {
-      setMascotMood('angry');
-    } else if (devilMood === 'impressed') {
-      setMascotMood('happy');
-    } else if (pendingTasks.length === 0) {
-      setMascotMood('happy');
-    } else if (tasksCompletedToday === 0) {
-      setMascotMood('judging');
-    } else {
-      setMascotMood('idle');
-    }
-  }, [dailyGoalMetToday, isTyping, devilMood, pendingTasks.length, tasksCompletedToday]);
-
   const handleSend = async () => {
-    if (!inputText.trim()) return;
-    const message = inputText.trim();
+    const text = inputText.trim();
+    if (!text) {
+      if (Platform.OS === 'web') {
+        setLocalMessage('Type something first!');
+      } else {
+        Alert.alert('Error', 'Type something first!');
+      }
+      return;
+    }
+
     setInputText('');
-    await sendMessage(message, tasks);
+    setLocalMessage('Sending...');
+
+    try {
+      await sendMessage(text, tasks);
+      setLocalMessage('');
+    } catch (error) {
+      console.error('Send error:', error);
+      setLocalMessage('Failed to send. Try again.');
+    }
+  };
+
+  const getMoodEmoji = () => {
+    if (dailyGoalMetToday) return '😈';
+    if (devilMood === 'angry') return '👿';
+    if (devilMood === 'impressed') return '😏';
+    if (tasksCompletedToday === 0) return '😒';
+    return '😈';
+  };
+
+  const goTo = (path: string) => {
+    try {
+      router.push(path as any);
+    } catch (e) {
+      console.error('Navigation error:', e);
+    }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-black"
-      keyboardVerticalOffset={100}
-    >
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
+    <View style={{ flex: 1, backgroundColor: '#000' }}>
+      {/* Header */}
+      <View
+        style={{
+          paddingHorizontal: 24,
+          paddingTop: insets.top + 8,
+          paddingBottom: 12,
+          borderBottomWidth: 1,
+          borderBottomColor: '#1a1a1a',
+        }}
       >
-        {/* Header with Stats */}
-        <View className="px-6 pt-4 pb-6">
-          <View className="flex-row justify-between items-center mb-6">
-            {/* Level Badge */}
-            <Pressable
-              onPress={() => router.push('/achievements')}
-              className="flex-row items-center"
-            >
-              <View className="w-10 h-10 rounded-full bg-gray-900 items-center justify-center border border-gray-800">
-                <Text className="text-white font-bold">{level}</Text>
-              </View>
-              <View className="ml-3">
-                <Text className="text-gray-500 text-xs">LEVEL {level}</Text>
-                <Text className="text-white font-medium">{getLevelTitle()}</Text>
-              </View>
-            </Pressable>
-
-            {/* Streak */}
-            <View className="flex-row items-center">
-              <View className="items-end mr-3">
-                <Text className="text-gray-500 text-xs">STREAK</Text>
-                <Text className="text-white font-bold text-lg">{currentStreak}</Text>
-              </View>
-              <View className="w-10 h-10 rounded-full bg-gray-900 items-center justify-center border border-gray-800">
-                <Text className="text-lg">{currentStreak > 0 ? '🔥' : '💀'}</Text>
-              </View>
-            </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View>
+            <Text style={{ color: '#666', fontSize: 11, letterSpacing: 1 }}>LEVEL {level}</Text>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '500' }}>{getLevelTitle()}</Text>
           </View>
-
-          {/* XP Progress */}
-          <View className="bg-gray-900 rounded-2xl p-4 border border-gray-800">
-            <View className="flex-row justify-between mb-2">
-              <Text className="text-gray-500 text-xs">XP PROGRESS</Text>
-              <Text className="text-gray-500 text-xs">{Math.round(xpProgress)}%</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ alignItems: 'flex-end', marginRight: 12 }}>
+              <Text style={{ color: '#666', fontSize: 11 }}>STREAK</Text>
+              <Text style={{ color: '#fff', fontSize: 20, fontWeight: '600' }}>{currentStreak}</Text>
             </View>
-            <View className="h-2 bg-gray-800 rounded-full overflow-hidden">
-              <MotiView
-                animate={{ width: `${xpProgress}%` }}
-                transition={{ type: 'spring', damping: 20 }}
-                className="h-full bg-white rounded-full"
-              />
-            </View>
+            <Text style={{ fontSize: 24 }}>{currentStreak > 0 ? '🔥' : '💀'}</Text>
           </View>
         </View>
+      </View>
 
-        {/* Mascot Section */}
-        <View className="items-center py-8">
-          <DevilMascot size={160} mood={mascotMood} />
+      {/* Content */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+        {/* Devil */}
+        <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+          <Text style={{ fontSize: 72 }}>{getMoodEmoji()}</Text>
 
-          {/* Devil Speech */}
-          <AnimatePresence>
-            {lastMessage && (
-              <MotiView
-                from={{ opacity: 0, translateY: 10 }}
-                animate={{ opacity: 1, translateY: 0 }}
-                exit={{ opacity: 0, translateY: -10 }}
-                className="mt-6 mx-6 bg-gray-900 rounded-2xl p-4 border border-gray-800"
-              >
-                <Text className="text-gray-300 text-center leading-relaxed">
-                  "{lastMessage}"
-                </Text>
-              </MotiView>
-            )}
-          </AnimatePresence>
+          {(lastMessage || localMessage) && (
+            <View style={{
+              marginTop: 24,
+              marginHorizontal: 24,
+              backgroundColor: '#111',
+              borderRadius: 16,
+              padding: 16,
+              maxWidth: 320,
+            }}>
+              <Text style={{ color: '#ccc', textAlign: 'center', fontSize: 15, lineHeight: 22 }}>
+                "{localMessage || lastMessage}"
+              </Text>
+            </View>
+          )}
+
+          {isTyping && (
+            <Text style={{ color: '#666', marginTop: 12 }}>Devil is typing...</Text>
+          )}
         </View>
 
-        {/* Daily Progress */}
-        <View className="px-6 mb-6">
-          <View className="bg-gray-900 rounded-2xl p-5 border border-gray-800">
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-white font-semibold text-lg">Today's Goal</Text>
+        {/* Stats */}
+        <View style={{ paddingHorizontal: 24 }}>
+          {/* Today's Progress */}
+          <TouchableOpacity
+            onPress={() => goTo('/tasks')}
+            activeOpacity={0.7}
+            style={{
+              backgroundColor: '#111',
+              borderRadius: 16,
+              padding: 20,
+              marginBottom: 16,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Text style={{ color: '#888', fontSize: 13, fontWeight: '500' }}>Today's Progress</Text>
               {dailyGoalMetToday && (
-                <View className="bg-green-500/20 px-3 py-1 rounded-full">
-                  <Text className="text-green-400 text-xs font-medium">COMPLETE</Text>
-                </View>
+                <Text style={{ color: '#22c55e', fontSize: 11 }}>COMPLETE</Text>
               )}
             </View>
-
-            {/* Progress Ring */}
-            <View className="flex-row items-center">
-              <View className="w-20 h-20 rounded-full border-4 border-gray-800 items-center justify-center mr-4"
-                style={{
-                  borderColor: dailyGoalMetToday ? colors.success : colors.gray[800],
-                }}
-              >
-                <Text className="text-white font-bold text-2xl">{tasksCompletedToday}</Text>
-                <Text className="text-gray-500 text-xs">/{dailyGoal}</Text>
-              </View>
-
-              <View className="flex-1">
-                <Text className="text-gray-400 mb-2">
-                  {dailyGoalMetToday
-                    ? "You crushed it. The devil is mildly annoyed."
-                    : tasksCompletedToday === 0
-                    ? "Nothing done yet? Bold strategy."
-                    : `${dailyGoal - tasksCompletedToday} more to shut me up.`}
-                </Text>
-
-                {/* Quick Task Count */}
-                <Pressable
-                  onPress={() => router.push('/tasks')}
-                  className="flex-row items-center"
-                >
-                  <Text className="text-pop font-medium">{pendingTasks.length} tasks waiting</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.pop.DEFAULT} />
-                </Pressable>
-              </View>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+              <Text style={{ color: '#fff', fontSize: 48, fontWeight: '300' }}>{tasksCompletedToday}</Text>
+              <Text style={{ color: '#444', fontSize: 24, fontWeight: '300', marginBottom: 4 }}>/{dailyGoal}</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={{ color: '#666', fontSize: 12 }}>{pendingTasks.length} pending →</Text>
             </View>
-          </View>
-        </View>
+          </TouchableOpacity>
 
-        {/* Bet Scoreboard */}
-        <View className="px-6 mb-6">
-          <Pressable
-            onPress={() => router.push('/bets')}
-            className="bg-gray-900 rounded-2xl p-5 border border-gray-800"
+          {/* Devil vs You */}
+          <TouchableOpacity
+            onPress={() => goTo('/(tabs)/projects')}
+            activeOpacity={0.7}
+            style={{
+              backgroundColor: '#111',
+              borderRadius: 16,
+              padding: 20,
+              marginBottom: 16,
+            }}
           >
-            <View className="flex-row items-center justify-between mb-4">
-              <Text className="text-white font-semibold">Devil vs You</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.gray[600]} />
+            <Text style={{ color: '#888', fontSize: 13, fontWeight: '500', marginBottom: 16 }}>Devil vs You</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#ef4444', fontSize: 36, fontWeight: '300' }}>{betStats.devilWins}</Text>
+                <Text style={{ color: '#555', fontSize: 11, marginTop: 4 }}>Devil</Text>
+              </View>
+              <Text style={{ color: '#333', fontSize: 20, paddingHorizontal: 16 }}>—</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#22c55e', fontSize: 36, fontWeight: '300' }}>{betStats.userWins}</Text>
+                <Text style={{ color: '#555', fontSize: 11, marginTop: 4 }}>You</Text>
+              </View>
+              <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                <Text style={{ color: '#888', fontSize: 20, fontWeight: '300' }}>{betStats.active}</Text>
+                <Text style={{ color: '#555', fontSize: 11, marginTop: 4 }}>Active</Text>
+              </View>
             </View>
+          </TouchableOpacity>
 
-            <View className="flex-row">
-              <View className="flex-1 items-center">
-                <Text className="text-pop text-3xl font-bold">{betStats.devilWins}</Text>
-                <Text className="text-gray-500 text-xs">DEVIL</Text>
-              </View>
-              <View className="w-px bg-gray-800" />
-              <View className="flex-1 items-center">
-                <Text className="text-green-400 text-3xl font-bold">{betStats.userWins}</Text>
-                <Text className="text-gray-500 text-xs">YOU</Text>
-              </View>
-              <View className="w-px bg-gray-800" />
-              <View className="flex-1 items-center">
-                <Text className="text-white text-3xl font-bold">{betStats.active}</Text>
-                <Text className="text-gray-500 text-xs">ACTIVE</Text>
-              </View>
-            </View>
-          </Pressable>
-        </View>
+          {/* Quick Actions */}
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity
+              onPress={() => goTo('/add-task')}
+              activeOpacity={0.7}
+              style={{
+                flex: 1,
+                backgroundColor: '#fff',
+                borderRadius: 16,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons name="add" size={20} color="#000" />
+              <Text style={{ color: '#000', fontSize: 11, fontWeight: '500', marginTop: 4 }}>Add Task</Text>
+            </TouchableOpacity>
 
-        {/* Quick Actions */}
-        <View className="px-6 mb-6">
-          <Text className="text-gray-500 text-xs mb-3">QUICK ACTIONS</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View className="flex-row gap-3">
-              <QuickAction
-                icon="add-circle"
-                label="Add Task"
-                onPress={() => router.push('/add-task')}
-                primary
-              />
-              <QuickAction
-                icon="timer"
-                label="Focus"
-                onPress={() => router.push('/(tabs)/focus')}
-              />
-              <QuickAction
-                icon="trophy"
-                label="Achievements"
-                onPress={() => router.push('/achievements')}
-              />
-              <QuickAction
-                icon="settings"
-                label="Settings"
-                onPress={() => router.push('/settings')}
-              />
-            </View>
-          </ScrollView>
+            <TouchableOpacity
+              onPress={() => goTo('/(tabs)/focus')}
+              activeOpacity={0.7}
+              style={{
+                flex: 1,
+                backgroundColor: '#111',
+                borderRadius: 16,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons name="timer-outline" size={20} color="#888" />
+              <Text style={{ color: '#888', fontSize: 11, fontWeight: '500', marginTop: 4 }}>Focus</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => goTo('/settings')}
+              activeOpacity={0.7}
+              style={{
+                flex: 1,
+                backgroundColor: '#111',
+                borderRadius: 16,
+                paddingVertical: 16,
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons name="settings-outline" size={20} color="#888" />
+              <Text style={{ color: '#888', fontSize: 11, fontWeight: '500', marginTop: 4 }}>Settings</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
       {/* Chat Input */}
       <View
-        className="absolute bottom-0 left-0 right-0 bg-black border-t border-gray-900 px-6 py-4"
-        style={{ paddingBottom: Math.max(insets.bottom, 16) }}
+        style={{
+          paddingHorizontal: 24,
+          paddingVertical: 16,
+          borderTopWidth: 1,
+          borderTopColor: '#1a1a1a',
+        }}
       >
-        <View className="flex-row items-center">
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TextInput
             value={inputText}
             onChangeText={setInputText}
             placeholder="Talk to the devil..."
-            placeholderTextColor={colors.gray[600]}
-            className="flex-1 bg-gray-900 text-white rounded-full px-5 py-3 mr-3 border border-gray-800"
+            placeholderTextColor="#666"
+            style={{
+              flex: 1,
+              backgroundColor: '#111',
+              color: '#fff',
+              borderRadius: 24,
+              paddingHorizontal: 20,
+              paddingVertical: 12,
+              fontSize: 16,
+              marginRight: 12,
+            }}
             onSubmitEditing={handleSend}
             returnKeyType="send"
           />
-          <MotiPressable
+          <TouchableOpacity
             onPress={handleSend}
-            disabled={!inputText.trim() || isTyping}
-            animate={{
-              scale: inputText.trim() ? 1 : 0.9,
-              opacity: inputText.trim() ? 1 : 0.5,
-            }}
-            transition={{ type: 'spring', damping: 15 }}
+            activeOpacity={0.7}
+            disabled={isTyping}
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: inputText.trim() ? colors.pop.DEFAULT : colors.gray[800],
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: inputText.trim() ? '#ff2222' : '#222',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
             <Ionicons
-              name="send"
+              name="arrow-up"
               size={20}
-              color={inputText.trim() ? colors.white : colors.gray[600]}
+              color={inputText.trim() ? '#fff' : '#666'}
             />
-          </MotiPressable>
+          </TouchableOpacity>
         </View>
       </View>
-    </KeyboardAvoidingView>
-  );
-}
-
-function QuickAction({
-  icon,
-  label,
-  onPress,
-  primary = false,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  onPress: () => void;
-  primary?: boolean;
-}) {
-  return (
-    <MotiPressable
-      onPress={onPress}
-      animate={({ pressed }) => {
-        'worklet';
-        return { scale: pressed ? 0.95 : 1 };
-      }}
-      transition={{ type: 'timing', duration: 100 }}
-      style={{
-        backgroundColor: primary ? colors.pop.DEFAULT : colors.gray[900],
-        paddingHorizontal: 20,
-        paddingVertical: 14,
-        borderRadius: 16,
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: primary ? colors.pop.DEFAULT : colors.gray[800],
-      }}
-    >
-      <Ionicons
-        name={icon}
-        size={18}
-        color={primary ? colors.white : colors.gray[400]}
-        style={{ marginRight: 8 }}
-      />
-      <Text
-        style={{
-          color: primary ? colors.white : colors.gray[300],
-          fontWeight: '500',
-        }}
-      >
-        {label}
-      </Text>
-    </MotiPressable>
+    </View>
   );
 }

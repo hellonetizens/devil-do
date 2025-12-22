@@ -53,15 +53,20 @@ function useProtectedRoute(hasCompletedOnboarding: boolean | null) {
 export default function RootLayout() {
   const { triggerShame } = useDevilStore();
   const { initialize, isInitialized } = useAuthStore();
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
+  // On web, skip onboarding check and go straight to app
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(
+    Platform.OS === 'web' ? true : null
+  );
 
   // Load Ionicons font for web
   const [fontsLoaded, fontError] = useFonts({
     ...Ionicons.font,
   });
 
-  // Check onboarding status
+  // Check onboarding status (skip on web - already set to true)
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     let mounted = true;
 
     const checkOnboarding = async () => {
@@ -71,7 +76,6 @@ export default function RootLayout() {
           setHasCompletedOnboarding(completed === 'true');
         }
       } catch (error) {
-        // If AsyncStorage fails, assume onboarding not completed
         console.warn('AsyncStorage error:', error);
         if (mounted) {
           setHasCompletedOnboarding(false);
@@ -79,12 +83,11 @@ export default function RootLayout() {
       }
     };
 
-    // Timeout fallback - use shorter timeout on web
     const timeout = setTimeout(() => {
       if (mounted) {
         setHasCompletedOnboarding(prev => prev === null ? false : prev);
       }
-    }, Platform.OS === 'web' ? 500 : 2000);
+    }, 2000);
 
     checkOnboarding();
 

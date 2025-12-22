@@ -1,19 +1,40 @@
 import React, { useEffect } from 'react';
-import { View, Text, Pressable } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
-import Svg, { Circle, G } from 'react-native-svg';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { useStreakStore } from '../stores/streakStore';
 import { haptics } from '../services/haptics';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+// Only use Reanimated/SVG on native
+let Animated: any = { View };
+let Svg: any = null;
+let Circle: any = null;
+let G: any = null;
+let AnimatedCircle: any = null;
+let useSharedValue: any = () => ({ value: 0 });
+let useAnimatedStyle: any = () => ({});
+let withSpring: any = (v: any) => v;
+let withRepeat: any = (v: any) => v;
+let withSequence: any = (v: any) => v;
+let withTiming: any = (v: any) => v;
+let Easing: any = { inOut: () => {} };
+
+const isWeb = Platform.OS === 'web';
+
+if (!isWeb) {
+  const reanimated = require('react-native-reanimated');
+  Animated = reanimated.default;
+  useSharedValue = reanimated.useSharedValue;
+  useAnimatedStyle = reanimated.useAnimatedStyle;
+  withSpring = reanimated.withSpring;
+  withRepeat = reanimated.withRepeat;
+  withSequence = reanimated.withSequence;
+  withTiming = reanimated.withTiming;
+  Easing = reanimated.Easing;
+  const svg = require('react-native-svg');
+  Svg = svg.default;
+  Circle = svg.Circle;
+  G = svg.G;
+  AnimatedCircle = Animated.createAnimatedComponent(Circle);
+}
 
 interface DailyGoalBannerProps {
   onStreakPress?: () => void;
@@ -111,31 +132,45 @@ export function DailyGoalBanner({ onStreakPress, onBadDayPress }: DailyGoalBanne
       <View className="flex-row items-center">
         {/* Progress Ring */}
         <View className="relative mr-4">
-          <Svg width={size} height={size}>
-            <G rotation="-90" origin={`${size / 2}, ${size / 2}`}>
-              {/* Background circle */}
-              <Circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                stroke="#3d1a1a"
-                strokeWidth={strokeWidth}
-                fill="transparent"
-              />
-              {/* Progress circle */}
-              <Circle
-                cx={size / 2}
-                cy={size / 2}
-                r={radius}
-                stroke={dailyGoalMetToday ? '#22c55e' : '#f97316'}
-                strokeWidth={strokeWidth}
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
-                fill="transparent"
-              />
-            </G>
-          </Svg>
+          {!isWeb && Svg && G && Circle ? (
+            <Svg width={size} height={size}>
+              <G rotation="-90" origin={`${size / 2}, ${size / 2}`}>
+                {/* Background circle */}
+                <Circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke="#3d1a1a"
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+                />
+                {/* Progress circle */}
+                <Circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={dailyGoalMetToday ? '#22c55e' : '#f97316'}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  fill="transparent"
+                />
+              </G>
+            </Svg>
+          ) : (
+            /* Web fallback - simple progress circle */
+            <View
+              style={{
+                width: size,
+                height: size,
+                borderRadius: size / 2,
+                borderWidth: strokeWidth,
+                borderColor: dailyGoalMetToday ? '#22c55e' : '#f97316',
+                backgroundColor: '#3d1a1a',
+              }}
+            />
+          )}
           {/* Center content */}
           <View className="absolute inset-0 items-center justify-center">
             <Text className="text-white font-black text-lg">
